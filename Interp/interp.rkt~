@@ -1,0 +1,47 @@
+#lang plai
+(require (file "./grammars.rkt"))
+(require (file "./parser.rkt"))
+(require (file "./desugar.rkt"))
+
+;; Busca el identificador "name" en el caché de 
+;; sustitución "ds" regresando el valor correspondiente
+;; o informando un error si no lo encuentra.
+;; lookup: symbol DefrdSub -> CFWBAE
+;; (define (lookup name ds)
+(define (lookup name ds)
+  (type-case DefrdSub ds
+    [mtSub () error 'lookup "Variable libre: "]
+    [aSub (bound-name bound-value rest-ds)
+          (if (symbol=? bound-name name)
+              bound-value
+              (lookup name rest-ds))]))
+
+
+;; Toma un árbol de sintáxis abstraca del lenguaje CFWAE, un caché de
+;; sustituciones y lo interpreta dependiendo de las definiciones dentro del caché,
+;; devolviendo el valor numérico correspondiente.
+;; interp: CFWBAE DefrdSub-> CFWBAE-Value
+(define (interp expr ds)
+  (type-case CFWBAE expr
+    [id (i)
+        (lookup i ds)]
+    [num (n)
+         (numV n)]
+    [bool (b)
+          (boolV b)]
+    [chaR (c)
+          (charV c)]
+    [strinG (s)
+            (stringV s)]
+    [lisT (l)
+          (listV (map (interp l ds) lisT-l))] ;; Esto está mal
+    [iF (condicion then else)
+        (if (equal? condicion (bool #t))
+            (interp then ds)
+            (interp else ds))]
+    [op (f args)
+        (f args)]
+    [fun (params body)
+         (closure params body ds)]
+    [app (fun args)
+         #t]))
